@@ -1,0 +1,164 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Tailwind CSS theme
+   * tailwind.config.ts expects the following color variables to be expressed as HSL values.
+   * A different format will require also updating the theme in tailwind.config.ts.
+  */
+  :root {
+    color-scheme: dark;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 9.8%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 9.8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 265 100% 55%;
+    --primary-foreground: 240 10% 3.9%;
+
+    --secondary: 240 10% 20%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 10% 25%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 265 100% 55%;
+    --accent-foreground: 240 10% 3.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 240 10% 3.9%;
+
+    --border: 240 10% 15%;
+    --input: 240 10% 9.8%;
+    --ring: 265 100% 55%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 240 10% 5%;
+
+    --sidebar-foreground: 0 0% 98%;
+
+    --sidebar-primary: 265 100% 55%;
+
+    --sidebar-primary-foreground: 240 10% 3.9%;
+
+    --sidebar-accent: 240 10% 20%;
+
+    --sidebar-accent-foreground: 0 0% 98%;
+
+    --sidebar-border: 240 10% 15%;
+
+    --sidebar-ring: 265 100% 55%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 9.8%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 9.8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 265 100% 55%;
+    --primary-foreground: 240 10% 3.9%;
+
+    --secondary: 240 10% 20%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 10% 25%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 265 100% 55%;
+    --accent-foreground: 240 10% 3.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 240 10% 3.9%;
+
+    --border: 240 10% 15%;
+    --input: 240 10% 9.8%;
+    --ring: 265 100% 55%;
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 265 100% 55%;
+    --sidebar-primary-foreground: 240 10% 3.9%;
+    --sidebar-accent: 240 10% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 10% 15%;
+    --sidebar-ring: 265 100% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre,
+  code {
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+}
+
+/* ── Thin scrollbar ────────────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 9999px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255,255,255,0.2);
+  }
+
+  /* Hover-over opacity helpers used for ghost buttons */
+  .hover\:bg-white\/8:hover {
+    background-color: rgba(255,255,255,0.08);
+  }
+  .hover\:bg-white\/\[0\.035\]:hover {
+    background-color: rgba(255,255,255,0.035);
+  }
+  .hover\:bg-white\/\[0\.055\]:hover {
+    background-color: rgba(255,255,255,0.055);
+  }
+}
