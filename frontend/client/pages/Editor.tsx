@@ -114,6 +114,9 @@ export default function EditorPage() {
           setSharedFiles(data.files);
         }
       },
+
+
+
     );
 
     socket.on('user_left', (data: { username: string; users: ConnectedUser[] }) => {
