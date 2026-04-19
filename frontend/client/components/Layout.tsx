@@ -43,6 +43,7 @@ export interface LayoutProps {
   files: FileNode[];
   onFilesChange: (files: FileNode[]) => void;
   isAdmin: boolean;
+  canEdit: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export default function Layout({
   files,
   onFilesChange,
   isAdmin,
+  canEdit,
 }: LayoutProps) {
   const [language, setLanguage] = useState('javascript');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -147,6 +149,7 @@ export default function Layout({
               selectedNodeLabel={selectedNodeLabel}
               onChange={onCodeChange}
               onMount={onEditorMount}
+              canEdit={canEdit}
             />
           </Panel>
         </PanelGroup>

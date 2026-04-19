@@ -26,6 +26,7 @@ import type { FileNode } from '@/components/Sidebar';
 interface ConnectedUser {
   socketId: string;
   username: string;
+  canEdit?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -233,7 +234,8 @@ export default function EditorPage() {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const currentUser = connectedUsers.find(u => u.username === username);
+  const canEdit = isAdmin || (currentUser?.canEdit ?? false);
 
   return (
     <Layout
@@ -251,6 +253,7 @@ export default function EditorPage() {
       files={sharedFiles}
       onFilesChange={handleFilesChange}
       isAdmin={isAdmin}
+      canEdit={canEdit}
     />
   );
 }

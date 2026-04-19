@@ -41,25 +41,26 @@ const ensureRoom = (roomId) => {
  * @param {string} roomId
  * @param {string} socketId
  * @param {string} username
+ * @param {boolean} canEdit
  * @returns {{ success: boolean, reason?: string }}
  */
-const addUser = (roomId, socketId, username) => {
+const addUser = (roomId, socketId, username, canEdit = false) => {
   ensureRoom(roomId);
   const room = rooms.get(roomId);
 
   // Check if username is already taken by a *different* socket
   const existingSocket = [...room.entries()].find(
-    ([sid, uname]) => uname === username && sid !== socketId
+    ([sid, data]) => data.username === username && sid !== socketId
   );
 
   if (existingSocket) {
     return { success: false, reason: `Username "${username}" is already taken in this room.` };
   }
 
-  room.set(socketId, username);
+  room.set(socketId, { username, canEdit });
   socketIndex.set(socketId, { username, roomId });
 
-  console.log(`[RoomManager] User "${username}" (${socketId}) joined room "${roomId}"`);
+  console.log(`[RoomManager] User "${username}" (${socketId}) joined room "${roomId}" with editAccess: ${canEdit}`);
   return { success: true };
 };
 
@@ -96,16 +97,42 @@ const removeUser = (socketId) => {
 };
 
 /**
- * Retrieve all users in a room as an array of { socketId, username } objects.
+ * Retrieve all users in a room as an array of { socketId, username, canEdit } objects.
  *
  * @param {string} roomId
- * @returns {Array<{ socketId: string, username: string }>}
+ * @returns {Array<{ socketId: string, username: string, canEdit: boolean }>}
  */
 const getUsersInRoom = (roomId) => {
   const room = rooms.get(roomId);
   if (!room) return [];
 
-  return [...room.entries()].map(([socketId, username]) => ({ socketId, username }));
+  return [...room.entries()].map(([socketId, data]) => ({ socketId, username: data.username, canEdit: data.canEdit }));
+};
+
+/**
+ * Grant edit access to a user.
+ */
+const grantAccess = (roomId, socketId) => {
+  const room = rooms.get(roomId);
+  if (room && room.has(socketId)) {
+    const data = room.get(socketId);
+    room.set(socketId, { ...data, canEdit: true });
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Revoke edit access from a user.
+ */
+const revokeAccess = (roomId, socketId) => {
+  const room = rooms.get(roomId);
+  if (room && room.has(socketId)) {
+    const data = room.get(socketId);
+    room.set(socketId, { ...data, canEdit: false });
+    return true;
+  }
+  return false;
 };
 
 /**
@@ -146,4 +173,6 @@ export {
   activeRoomCount,
   totalUserCount,
   getSessionBySocket,
+  grantAccess,
+  revokeAccess,
 };

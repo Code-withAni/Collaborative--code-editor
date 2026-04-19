@@ -80,6 +80,6 @@ userSchema.statics.markOffline = function (socketId) {
   );
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema, 'room_sessions');
 
 export default User;

@@ -23,6 +23,8 @@ import {
   addUser,
   removeUser,
   getUsersInRoom,
+  grantAccess,
+  revokeAccess,
 } from '../utils/roomManager.js';
 
 // ── Rate-Limiting State (Bonus Feature) ───────────────────────────────────────
@@ -104,8 +106,11 @@ const socketHandler = (io) => {
           return;
         }
 
+        // ── Check if user is owner ────────────────────────────────────────
+        const isOwner = (sanitizedUsername === room.owner);
+
         // ── Register user in memory ───────────────────────────────────────
-        const result = addUser(sanitizedRoomId, socket.id, sanitizedUsername);
+        const result = addUser(sanitizedRoomId, socket.id, sanitizedUsername, isOwner);
 
         if (!result.success) {
           socket.emit('room_error', { message: result.reason });
@@ -182,6 +187,14 @@ const socketHandler = (io) => {
 
         const sanitizedRoomId = roomId.trim();
 
+        // Check in-memory permissions
+        const usersInRoom = getUsersInRoom(sanitizedRoomId);
+        const me = usersInRoom.find(u => u.socketId === socket.id);
+        if (!me || (!me.canEdit)) {
+          socket.emit('room_error', { message: 'You do not have permission to edit the code.' });
+          return;
+        }
+
         // ── Broadcast to all OTHER clients in the room ────────────────────
         socket.to(sanitizedRoomId).emit('receive_code', {
           code,
@@ -220,6 +233,43 @@ const socketHandler = (io) => {
         );
       } catch (err) {
         console.error('[Socket] files_update error:', err.message);
+      }
+    });
+
+    // ── Edit Permissions Management ────────────────────────────────────────────────
+    socket.on('grant_edit_access', async ({ roomId, targetSocketId } = {}) => {
+      if (!roomId || !targetSocketId) return;
+      const sanitizedRoomId = roomId.trim();
+      const room = await Room.findByRoomId(sanitizedRoomId);
+      if (!room) return;
+      
+      const session = getUsersInRoom(sanitizedRoomId).find(u => u.socketId === socket.id);
+      if (!session || session.username !== room.owner) {
+        socket.emit('room_error', { message: 'Only the room admin can grant edit access.' });
+        return;
+      }
+      
+      if (grantAccess(sanitizedRoomId, targetSocketId)) {
+        const users = getUsersInRoom(sanitizedRoomId);
+        io.in(sanitizedRoomId).emit('user_list', { users });
+      }
+    });
+
+    socket.on('revoke_edit_access', async ({ roomId, targetSocketId } = {}) => {
+      if (!roomId || !targetSocketId) return;
+      const sanitizedRoomId = roomId.trim();
+      const room = await Room.findByRoomId(sanitizedRoomId);
+      if (!room) return;
+      
+      const session = getUsersInRoom(sanitizedRoomId).find(u => u.socketId === socket.id);
+      if (!session || session.username !== room.owner) {
+        socket.emit('room_error', { message: 'Only the room admin can revoke edit access.' });
+        return;
+      }
+      
+      if (revokeAccess(sanitizedRoomId, targetSocketId)) {
+        const users = getUsersInRoom(sanitizedRoomId);
+        io.in(sanitizedRoomId).emit('user_list', { users });
       }
     });
 

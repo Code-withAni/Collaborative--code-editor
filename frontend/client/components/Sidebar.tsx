@@ -15,6 +15,7 @@ import {
   type ChangeEvent,
   type KeyboardEvent as KbEvent,
 } from 'react';
+import { getSocket } from '@/socket/socket';
 import {
   ChevronRight,
   ChevronDown,
@@ -68,6 +69,7 @@ export interface TreeNode {
 interface ConnectedUser {
   socketId: string;
   username: string;
+  canEdit?: boolean;
 }
 
 interface FileCtxMenu {
@@ -85,6 +87,15 @@ interface DomCtxMenu {
   y: number;
   nodeId: string | null;
   nodeLabel: string;
+}
+
+interface UserCtxMenu {
+  visible: boolean;
+  x: number;
+  y: number;
+  socketId: string;
+  username: string;
+  canEdit: boolean;
 }
 
 export interface SidebarProps {
@@ -487,6 +498,46 @@ function DomContextMenu({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// User context menu
+// ─────────────────────────────────────────────────────────────────────────────
+
+function UserContextMenu({
+  state, onClose, onGrant, onRevoke,
+}: {
+  state: UserCtxMenu;
+  onClose: () => void;
+  onGrant: (socketId: string) => void;
+  onRevoke: (socketId: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [onClose]);
+
+  if (!state.visible) return null;
+
+  return (
+    <div
+      ref={ref}
+      id="user-context-menu"
+      style={{ top: state.y, left: state.x }}
+      className="fixed z-50 w-48 rounded-lg border border-white/10 bg-[#1a1a1a] shadow-2xl shadow-black/60 py-1 overflow-hidden"
+    >
+      <div className="px-3 py-1.5 text-[10px] text-gray-500 font-medium truncate border-b border-white/8 mb-1">
+        {state.username} Actions
+      </div>
+      {state.canEdit ? (
+        <CtxBtn icon={<EyeOff className="w-3.5 h-3.5" />} label="Revoke Edit Access" onClick={() => { onRevoke(state.socketId); onClose(); }} danger />
+      ) : (
+        <CtxBtn icon={<Pencil className="w-3.5 h-3.5" />} label="Grant Edit Access" onClick={() => { onGrant(state.socketId); onClose(); }} />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Folder upload modal
 //
 // Uses <input webkitdirectory> to pick an entire directory tree.
@@ -884,6 +935,11 @@ export default function Sidebar({
     visible: false, x: 0, y: 0, nodeId: null, nodeLabel: '',
   });
 
+  // User tab state
+  const [userCtx, setUserCtx] = useState<UserCtxMenu>({
+    visible: false, x: 0, y: 0, socketId: '', username: '', canEdit: false,
+  });
+
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
   // ── File open ──────────────────────────────────────────────────────────────
@@ -949,6 +1005,29 @@ export default function Sidebar({
     e.preventDefault(); e.stopPropagation();
     setDomCtx({ visible: true, x: e.clientX, y: e.clientY, nodeId: id, nodeLabel: label });
   }, []);
+
+  const openUserCtx = useCallback((e: React.MouseEvent, user: ConnectedUser) => {
+    if (!isAdmin) return; // Only admin can open this
+    e.preventDefault(); e.stopPropagation();
+    setUserCtx({
+      visible: true, x: e.clientX, y: e.clientY,
+      socketId: user.socketId, username: user.username, canEdit: !!user.canEdit
+    });
+  }, [isAdmin]);
+
+  const handleGrantAccess = useCallback((targetSocketId: string) => {
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit('grant_edit_access', { roomId, targetSocketId });
+    }
+  }, [roomId]);
+
+  const handleRevokeAccess = useCallback((targetSocketId: string) => {
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit('revoke_edit_access', { roomId, targetSocketId });
+    }
+  }, [roomId]);
 
   const TABS: { id: Tab; icon: React.ReactNode; label: string }[] = [
     { id: 'files', icon: <Files    className="w-3.5 h-3.5" />, label: 'Files' },
@@ -1112,7 +1191,11 @@ export default function Sidebar({
                 <p className="text-center text-[11px] text-gray-600 mt-8">No users online</p>
               )}
               {connectedUsers.map(user => (
-                <div key={user.socketId} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-white/[0.03] hover:bg-white/[0.055] border border-white/[0.05] transition-colors">
+                <div 
+                  key={user.socketId} 
+                  onContextMenu={e => openUserCtx(e, user)}
+                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-white/[0.03] hover:bg-white/[0.055] border border-white/[0.05] transition-colors cursor-context-menu"
+                >
                   <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${avatarColor(user.username)} flex items-center justify-center text-[11px] font-bold text-white shrink-0`}>
                     {user.username[0]?.toUpperCase()}
                   </div>
@@ -1120,9 +1203,13 @@ export default function Sidebar({
                     <p className="text-xs text-gray-200 font-medium truncate">
                       {user.username}
                       {user.username === username && <span className="ml-1.5 text-[10px] text-violet-400 font-normal">(you)</span>}
-                      {/* Show Admin badge if they are the owner */}
-                      {user.username === sessionStorage.getItem('roomOwner') && (
-                        <span className="ml-1.5 px-1 py-0.5 rounded bg-violet-500/20 text-violet-400 text-[9px] font-bold border border-violet-500/30 uppercase tracking-tighter">Admin</span>
+                      {/* Show Admin badge or Editor badge */}
+                      {user.username === sessionStorage.getItem('roomOwner') ? (
+                        <span className="ml-1.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[9px] font-bold border border-amber-500/30 uppercase tracking-tighter">Admin</span>
+                      ) : user.canEdit ? (
+                        <span className="ml-1.5 px-1 py-0.5 rounded bg-violet-500/20 text-violet-400 text-[9px] font-bold border border-violet-500/30 uppercase tracking-tighter">Editor</span>
+                      ) : (
+                        <span className="ml-1.5 px-1 py-0.5 rounded bg-gray-500/20 text-gray-400 text-[9px] font-bold border border-gray-500/30 uppercase tracking-tighter">Viewer</span>
                       )}
                     </p>
                     <p className="text-[10px] text-emerald-500 flex items-center gap-1 mt-0.5">
@@ -1170,6 +1257,13 @@ export default function Sidebar({
         onCopy={() => navigator.clipboard.writeText(`#${domCtx.nodeId ?? ''}`).catch(() => {})}
         onHide={() => { if (domCtx.nodeId) setHiddenIds(s => new Set([...s, domCtx.nodeId!])); }}
         onCreate={() => {}}
+      />
+
+      <UserContextMenu
+        state={userCtx}
+        onClose={() => setUserCtx(s => ({ ...s, visible: false }))}
+        onGrant={handleGrantAccess}
+        onRevoke={handleRevokeAccess}
       />
 
       {showUpload && (

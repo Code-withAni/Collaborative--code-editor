@@ -18,6 +18,7 @@ interface EditorPanelProps {
   selectedNodeLabel: string | null;
   onChange: (value: string | undefined) => void;
   onMount: EditorProps['onMount'];
+  canEdit?: boolean;
 }
 
 export default function EditorPanel({
@@ -27,6 +28,7 @@ export default function EditorPanel({
   selectedNodeLabel,
   onChange,
   onMount,
+  canEdit = true,
 }: EditorPanelProps) {
   const [position, setPosition] = useState({ line: 1, col: 1 });
   const [isLoading, setIsLoading] = useState(true);
@@ -138,6 +140,7 @@ export default function EditorPanel({
           onChange={onChange}
           onMount={handleMount}
           options={{
+            readOnly: !canEdit,
             minimap: { enabled: true, scale: 1, renderCharacters: false },
             fontSize: 13.5,
             fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", Menlo, Monaco, monospace',
