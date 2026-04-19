@@ -99,7 +99,7 @@ export default function EditorPage() {
 
     socket.on(
       'user_joined',
-      (data: { username: string; users: ConnectedUser[]; lastCode?: string }) => {
+      (data: { username: string; users: ConnectedUser[]; lastCode?: string; files?: FileNode[] }) => {
         setConnectedUsers(data.users);
         if (data.lastCode && data.lastCode.trim() !== '') {
           isUpdatingFromSocket.current = true;
