@@ -5,42 +5,46 @@ import { createExpressApp, setupSocketIO } from "./server";
 import { Server as SocketIOServer } from "socket.io";
 
 // https://vitejs.dev/config/
-server: {
-  host: "::",
-  port: 8080,
-  allowedHosts: [
-    "collaborative-code-editor-2718.onrender.com"
-  ],
-  fs: {
-    allow: ["./client", "./shared", "index.html"],
-    deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
+export default defineConfig({
+  server: {
+    host: "::",
+    port: 8080,
+    allowedHosts: [
+      "collaborative-code-editor-2718.onrender.com"
+    ],
+    fs: {
+      allow: ["./client", "./shared", "index.html"],
+      deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
+    },
   },
-},
+
   build: {
     outDir: "dist/spa",
   },
+
   plugins: [react(), expressPlugin()],
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
       "@shared": path.resolve(__dirname, "./shared"),
     },
   },
-}));
+});
 
 function expressPlugin(): Plugin {
   let io: SocketIOServer | null = null;
 
   return {
     name: "express-plugin",
-    apply: "serve", // Only apply during development (serve mode)
+    apply: "serve", // Only in dev
+
     configureServer(server) {
       const app = createExpressApp();
 
-      // Add Express app as middleware to Vite dev server
+      // attach express middleware
       server.middlewares.use(app);
 
-      // Attach Socket.io to the Vite dev server's underlying HTTP server
       return () => {
         if (server.httpServer && !io) {
           io = new SocketIOServer(server.httpServer, {
@@ -49,6 +53,7 @@ function expressPlugin(): Plugin {
               methods: ["GET", "POST"],
             },
           });
+
           setupSocketIO(io);
           console.log("Socket.io attached to dev server");
         }
