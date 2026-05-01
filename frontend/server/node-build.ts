@@ -27,7 +27,7 @@ const spaPath = path.resolve(__dirname, "../spa");
 app.use(express.static(spaPath));
 
 // Fallback to index.html for client-side routing
-app.get("*", (_req, res) => {
+app.get(/.*/, (_req, res) => {
   res.sendFile(path.join(spaPath, "index.html"));
 });
 
@@ -44,6 +44,17 @@ const io = new SocketIOServer(httpServer, {
 setupSocketIO(io);
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+httpServer.on("error", (error) => {
+  const err = error as NodeJS.ErrnoException;
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `[Server] Port ${PORT} is already in use. Stop the process using it or start with a different port: PORT=3000 npm start`,
+    );
+    process.exit(1);
+  }
+  throw err;
+});
+
 httpServer.listen(PORT, () => {
   console.log(`[Server] 🚀 Production server running on http://localhost:${PORT}`);
 });
